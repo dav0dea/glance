@@ -1,10 +1,23 @@
 {
 	"name": "glance",
 	"version": "0.1.0",
-	"description": "One WebGL2 surface that draws many line and image plots into rectangles.",
+	"description": "Many plots on one WebGL2 canvas: points and image data mapped to pixels at upload speed.",
 	"license": "MIT",
 	"author": "Philipp Thölke",
-	"repository": "github:dav0dea/glance",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/dav0dea/glance.git"
+	},
+	"keywords": [
+		"webgl2",
+		"plot",
+		"chart",
+		"canvas",
+		"realtime",
+		"signal",
+		"image",
+		"gpu"
+	],
 	"type": "module",
 	"files": [
 		"dist"

@@ -1,6 +1,6 @@
 /** The pure half of glance: rectangles, windows, grids and buffer layout. No GL here. */
 
-/** A plot's box in the host's flow units. */
+/** A plot's box in the host's world units. */
 export interface Rect {
 	x: number;
 	y: number;
@@ -8,7 +8,7 @@ export interface Rect {
 	h: number;
 }
 
-/** The pane in CSS pixels, the camera in flow units, and the device pixel ratio. */
+/** The pane in CSS pixels, the camera in world units, and the device pixel ratio. */
 export interface View {
 	x: number;
 	y: number;
