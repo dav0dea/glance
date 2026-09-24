@@ -1,8 +1,8 @@
-import { program, type Program } from './gl';
-import { ImagePlot } from './image';
-import { LinePlot } from './line';
-import { deviceRect, visible, type View } from './math';
-import { IMAGE_FS, IMAGE_VS, LINE_FS, LINE_VS } from './shaders';
+import { program, type Program } from './gl.js';
+import { ImagePlot } from './image.js';
+import { LinePlot } from './line.js';
+import { deviceRect, visible, type View } from './math.js';
+import { IMAGE_FS, IMAGE_VS, LINE_FS, LINE_VS } from './shaders.js';
 
 export type Plot = LinePlot | ImagePlot;
 

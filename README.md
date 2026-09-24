@@ -9,6 +9,14 @@ A page with thirty small charts pays once per chart for a canvas commit, a path 
 main-thread task. glance draws every plot into one surface in one animation frame: a plot is a
 rectangle plus a GPU buffer, and a new frame is a buffer upload, not a state write.
 
+## Install
+
+```sh
+npm install github:dav0dea/glance
+```
+
+The package builds `dist/` on install.
+
 ## API
 
 ```ts
@@ -60,4 +68,5 @@ into. A docked viewer panel keeps a surface of its own at zoom 1.
 npm install
 npm test      # vitest over the pure parts: rects, windows, layout, palette
 npm run check
+npm run build # dist/ with declarations
 ```

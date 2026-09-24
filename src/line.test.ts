@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { LinePlot } from './line';
+import { LinePlot } from './line.js';
 
 describe('LinePlot', () => {
 	it('clears to no range until the next push', () => {

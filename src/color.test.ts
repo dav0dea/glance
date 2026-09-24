@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { bisect, oklchHex, seriesColor } from './color';
+import { bisect, oklchHex, seriesColor } from './color.js';
 
 describe('series palette', () => {
 	it('bisects the widest arc without moving earlier points', () => {

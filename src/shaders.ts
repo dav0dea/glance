@@ -1,7 +1,6 @@
 /** GLSL ES 3.00 sources. Positions arrive in data units and leave in device pixels. */
 
-/** One instance per segment (or per point when `u_point`): `a_p0`/`a_p1` read one buffer a vertex
- * apart. A NaN or out-of-domain endpoint collapses the quad: the row pad, or a log-axis drop. The
+/** One instance per segment (or point); a NaN or out-of-domain endpoint collapses the quad. The
  * colour is the series' texel of `u_palette`, or `u_flat` when its alpha is set (the grid). */
 export const LINE_VS = `#version 300 es
 precision highp float;

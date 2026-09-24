@@ -4,18 +4,20 @@
 	"description": "One WebGL2 surface that draws many line and image plots into rectangles.",
 	"license": "MIT",
 	"author": "Philipp Thölke",
+	"repository": "github:dav0dea/glance",
 	"type": "module",
 	"files": [
-		"src",
-		"!src/**/*.test.ts"
+		"dist"
 	],
 	"exports": {
 		".": {
-			"types": "./src/index.ts",
-			"default": "./src/index.ts"
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
 		}
 	},
 	"scripts": {
+		"build": "tsc -p tsconfig.build.json",
+		"prepare": "npm run build",
 		"check": "tsc --noEmit",
 		"test": "vitest run"
 	},

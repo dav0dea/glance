@@ -1,5 +1,5 @@
-import { bindSegments, type Program } from './gl';
-import { seriesRgba } from './color';
+import { bindSegments, type Program } from './gl.js';
+import { seriesRgba } from './color.js';
 import {
 	extent,
 	layoutSeries,
@@ -8,7 +8,7 @@ import {
 	axisWindow,
 	gridLines,
 	type Rect
-} from './math';
+} from './math.js';
 
 export interface LineSettings {
 	logX: boolean;

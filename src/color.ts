@@ -1,7 +1,5 @@
-/** The series palette, procedural and online: series `i` takes the hue that bisects the widest
- * arc left by series 0..i-1, so earlier series never move, every power of two is evenly spaced,
- * and the smallest hue gap never falls under half the even spacing. Rings of eight shift
- * lightness and chroma a step, so a ninth series differs from the first in more than hue. */
+/** The series palette: series `i` takes the hue that bisects the widest arc left before it, and
+ * each ring of eight steps lightness and chroma, so earlier series never move. */
 
 const BASE_HUE = 250;
 // Mid lightness: many lines over a dark surface stay a picture, not a glare.

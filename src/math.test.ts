@@ -9,7 +9,7 @@ import {
 	logSafe,
 	rgba,
 	visible
-} from './math';
+} from './math.js';
 
 describe('rects', () => {
 	const view = { x: 100, y: 50, zoom: 0.5, width: 800, height: 600, dpr: 2 };

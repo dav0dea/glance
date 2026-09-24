@@ -1,5 +1,5 @@
-import type { Program } from './gl';
-import { fitImage, rgba, type Rect } from './math';
+import type { Program } from './gl.js';
+import { fitImage, rgba, type Rect } from './math.js';
 
 export interface ImageSettings {
 	/** 256 RGB triplets the single-channel mode samples through. */

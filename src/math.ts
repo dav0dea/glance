@@ -1,4 +1,4 @@
-/** The pure half of glance: rectangles, windows, hit tests and buffer layout. No GL here. */
+/** The pure half of glance: rectangles, windows, grids and buffer layout. No GL here. */
 
 /** A plot's box in the host's flow units. */
 export interface Rect {
@@ -86,9 +86,8 @@ export function axisWindow(lo: number, hi: number, log: boolean, pad = 0.05): [n
 	return [a - p, b + p];
 }
 
-/** Grid positions for an axis window `[a, b]` in axis space, as fractions of the span. A linear
- * axis takes major 1-2-5 steps near `target` lines; a log axis a major line per decade and minor
- * lines at the mantissa steps 2..9, so the spacing shows the scale. */
+/** Grid positions in `[a, b]` as fractions of the span: 1-2-5 steps near `target` lines on a
+ * linear axis, decades with minor lines at the mantissas 2..9 on a log axis. */
 export function gridLines(a: number, b: number, log: boolean, target = 4): { major: number[]; minor: number[] } {
 	const major: number[] = [];
 	const minor: number[] = [];
