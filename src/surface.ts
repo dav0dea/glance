@@ -60,8 +60,10 @@ export function createSurface(canvas: HTMLCanvasElement): Surface {
 			gl.scissor(d.x, h - d.y - d.h, d.w, d.h);
 			gl.clearColor(...p.background);
 			gl.clear(gl.COLOR_BUFFER_BIT);
-			if (p instanceof LinePlot) p.draw(gl, programs.line, d, size, view.dpr);
-			else p.draw(gl, programs.image, d, size);
+			const prog = p instanceof LinePlot ? programs.line : programs.image;
+			gl.bindVertexArray(prog.vao);
+			if (p instanceof LinePlot) p.draw(gl, prog, d, size, view.dpr);
+			else p.draw(gl, prog, d, size);
 		}
 	}
 
@@ -101,6 +103,9 @@ export function createSurface(canvas: HTMLCanvasElement): Surface {
 	};
 }
 
+/** The line program's segment attributes live in a VAO of its own, so an image drawn after a
+ * removed line never meets an attribute enabled on a deleted buffer. */
 function build(gl: WebGL2RenderingContext): { line: Program; image: Program } {
-	return { line: program(gl, LINE_VS, LINE_FS), image: program(gl, IMAGE_VS, IMAGE_FS) };
+	const line = { ...program(gl, LINE_VS, LINE_FS), vao: gl.createVertexArray() };
+	return { line, image: program(gl, IMAGE_VS, IMAGE_FS) };
 }

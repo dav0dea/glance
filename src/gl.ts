@@ -3,6 +3,8 @@
 export interface Program {
 	prog: WebGLProgram;
 	u: Record<string, WebGLUniformLocation>;
+	/** The attribute state the program draws with; `null` is the default one, which has none. */
+	vao: WebGLVertexArrayObject | null;
 }
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLShader {
@@ -29,7 +31,7 @@ export function program(gl: WebGL2RenderingContext, vs: string, fs: string): Pro
 		const name = gl.getActiveUniform(prog, i)!.name.replace('[0]', '');
 		u[name] = gl.getUniformLocation(prog, name)!;
 	}
-	return { prog, u };
+	return { prog, u, vao: null };
 }
 
 /** A segment buffer bound to the line program's two attribute slots, one vertex apart. */
