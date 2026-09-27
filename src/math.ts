@@ -1,4 +1,4 @@
-/** The pure half of glance: rectangles, windows, grids and buffer layout. No GL here. */
+/** The pure half of plotluck: rectangles, windows, grids and buffer layout. No GL here. */
 
 /** A plot's box in the host's world units. */
 export interface Rect {

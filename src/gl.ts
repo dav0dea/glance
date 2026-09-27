@@ -12,7 +12,7 @@ function compile(gl: WebGL2RenderingContext, type: number, src: string): WebGLSh
 	gl.shaderSource(sh, src);
 	gl.compileShader(sh);
 	if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) {
-		throw new Error(`glance shader: ${gl.getShaderInfoLog(sh)}`);
+		throw new Error(`plotluck shader: ${gl.getShaderInfoLog(sh)}`);
 	}
 	return sh;
 }
@@ -23,7 +23,7 @@ export function program(gl: WebGL2RenderingContext, vs: string, fs: string): Pro
 	gl.attachShader(prog, compile(gl, gl.FRAGMENT_SHADER, fs));
 	gl.linkProgram(prog);
 	if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-		throw new Error(`glance program: ${gl.getProgramInfoLog(prog)}`);
+		throw new Error(`plotluck program: ${gl.getProgramInfoLog(prog)}`);
 	}
 	const u: Record<string, WebGLUniformLocation> = {};
 	const n = gl.getProgramParameter(prog, gl.ACTIVE_UNIFORMS) as number;

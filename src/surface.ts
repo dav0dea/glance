@@ -17,7 +17,7 @@ export interface Surface {
 /** One surface per host canvas. Throws when the canvas cannot give a WebGL2 context. */
 export function createSurface(canvas: HTMLCanvasElement): Surface {
 	const ctx = canvas.getContext('webgl2', { antialias: true, depth: false, stencil: false });
-	if (!ctx) throw new Error('glance: WebGL2 is not available');
+	if (!ctx) throw new Error('plotluck: WebGL2 is not available');
 	const gl: WebGL2RenderingContext = ctx;
 	let programs = build(gl);
 	const plots = new Set<Plot>();

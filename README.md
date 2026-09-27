@@ -1,14 +1,14 @@
-# glance
+# plotluck
 
 Many plots, one WebGL2 canvas.
 
-glance maps points and image data onto a canvas as fast as the GPU takes an upload. A page with
+plotluck maps points and image data onto a canvas as fast as the GPU takes an upload. A page with
 thirty small charts usually pays thirty times for a canvas commit, a path build and a main-thread
-task. glance pays once: every plot is a rectangle and a GPU buffer, a new frame is a buffer upload,
+task. plotluck pays once: every plot is a rectangle and a GPU buffer, a new frame is a buffer upload,
 and one animation frame draws every visible plot.
 
 ```ts
-import { createSurface } from 'glance';
+import { createSurface } from 'plotluck';
 
 const surface = createSurface(canvas); // throws without WebGL2
 surface.setView({ x: 0, y: 0, zoom: 1, width, height, dpr: devicePixelRatio });
@@ -24,7 +24,7 @@ What a plot shows, when it updates and how it is labelled are yours.
 ## Install
 
 ```sh
-npm install github:dav0dea/glance
+npm install plotluck
 ```
 
 The package builds `dist/` (ES modules and declarations) on install.
