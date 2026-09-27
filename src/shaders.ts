@@ -1,11 +1,15 @@
 /** GLSL ES 3.00 sources. Positions arrive in data units and leave in device pixels. */
 
 /** One instance per segment (or point); a NaN or out-of-domain endpoint collapses the quad. The
- * colour is the series' texel of `u_palette`, or `u_flat` when its alpha is set (the grid). */
+ * quad's ends lie on the miter with each neighbouring segment, so joints share one edge and no
+ * pixel is painted twice; a pad or a bad neighbour makes a butt end. The colour is the series'
+ * texel of `u_palette`, or `u_flat` when its alpha is set (the grid). */
 export const LINE_VS = `#version 300 es
 precision highp float;
-layout(location = 0) in vec2 a_p0;
-layout(location = 1) in vec2 a_p1;
+layout(location = 0) in vec2 a_prev;
+layout(location = 1) in vec2 a_p0;
+layout(location = 2) in vec2 a_p1;
+layout(location = 3) in vec2 a_next;
 uniform vec4 u_rect;
 uniform vec2 u_canvas;
 uniform vec2 u_x;
@@ -28,6 +32,22 @@ vec2 toPx(vec2 p) {
 	vec2 t = (m - vec2(u_x.x, u_y.x)) / vec2(u_x.y - u_x.x, u_y.y - u_y.x);
 	return vec2(u_rect.x + t.x * u_rect.z, u_rect.y + (1.0 - t.y) * u_rect.w);
 }
+// The half-width offset at the joint of a segment with normal n and its neighbour's normal n2:
+// along the miter, no longer than four half-widths, so a spike does not throw a spear.
+vec2 joint(vec2 n, vec2 n2, float hw) {
+	vec2 sum = n + n2;
+	if (dot(sum, sum) < 1e-6) return n * hw;
+	vec2 m = normalize(sum);
+	return m * hw / max(dot(m, n), 0.25);
+}
+// The unit normal of the segment from p to q, or false where it is too short to have one.
+bool normalOf(vec2 p, vec2 q, out vec2 n) {
+	vec2 d = q - p;
+	float len = length(d);
+	if (len < 1e-4) return false;
+	n = vec2(-d.y, d.x) / len;
+	return true;
+}
 void main() {
 	vec4 series = texelFetch(u_palette, ivec2(gl_InstanceID / u_stride, 0), 0);
 	v_color = u_flat.a > 0.0 ? u_flat : vec4(series.rgb, series.a * u_alpha);
@@ -43,11 +63,18 @@ void main() {
 		pos = a + vec2((c & 1) == 1 ? u_width : -u_width, c >= 2 ? u_width : -u_width);
 	} else {
 		vec2 b = toPx(a_p1);
-		vec2 d = b - a;
-		float len = max(length(d), 1e-6);
-		vec2 along = d / len * u_width * 0.5;
-		vec2 n = vec2(-d.y, d.x) / len * u_width * 0.5;
-		pos = (c < 2 ? a - along : b + along) + ((c & 1) == 1 ? n : -n);
+		vec2 n;
+		if (!normalOf(a, b, n)) {
+			gl_Position = vec4(-2.0, -2.0, 0.0, 1.0);
+			return;
+		}
+		float hw = u_width * 0.5;
+		vec2 offA = n * hw;
+		vec2 offB = n * hw;
+		vec2 n2;
+		if (ok(a_prev) && normalOf(toPx(a_prev), a, n2)) offA = joint(n, n2, hw);
+		if (ok(a_next) && normalOf(b, toPx(a_next), n2)) offB = joint(n, n2, hw);
+		pos = c < 2 ? a + ((c & 1) == 1 ? offA : -offA) : b + ((c & 1) == 1 ? offB : -offB);
 	}
 	vec2 clip = pos / u_canvas * 2.0 - 1.0;
 	gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);

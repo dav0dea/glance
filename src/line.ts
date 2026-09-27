@@ -46,8 +46,12 @@ const MINOR_COLOR: [number, number, number, number] = [1, 1, 1, 0.02];
 /** Grid segments in rect fractions: a NaN pad after each line keeps the instanced draw from joining them. */
 function gridSegments(xs: number[], ys: number[]): Float32Array {
 	return new Float32Array([
+		NaN,
+		NaN,
 		...xs.flatMap((t) => [t, 0, t, 1, NaN, NaN]),
-		...ys.flatMap((t) => [0, t, 1, t, NaN, NaN])
+		...ys.flatMap((t) => [0, t, 1, t, NaN, NaN]),
+		NaN,
+		NaN
 	]);
 }
 
@@ -178,7 +182,8 @@ export class LinePlot {
 		if (this.scalar) {
 			this.fitScalar(buf, yAuto, yMin, yMax);
 		} else {
-			this.xw = axisWindow(buf[0], buf[(this.m - 1) * 2], logX, 0);
+			// Point k sits at buf[(k + 1) * 2]: the pad comes first.
+			this.xw = axisWindow(buf[2], buf[this.m * 2], logX, 0);
 			if (yAuto) {
 				const e = extent(buf, 1, 2, logY) ?? [-1, 1];
 				this.yw = axisWindow(e[0], e[1], logY);
@@ -200,7 +205,7 @@ export class LinePlot {
 		} else if (this.scalarLo <= this.scalarHi) {
 			this.xw = axisWindow(this.scalarLo, this.scalarHi, false);
 		} else {
-			this.xw = [buf[0] - 1, buf[0] + 1];
+			this.xw = [buf[2] - 1, buf[2] + 1];
 		}
 	}
 
@@ -249,12 +254,13 @@ export class LinePlot {
 			gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, n, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, px);
 			gpu.paletteSeries = n;
 		}
-		const instances = this.series * this.stride - 1;
+		// Instance i is the segment from point i + 1: the pads before and after keep every read in range.
+		const instances = this.series * this.stride - 2;
 		gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances);
 		if (this.settings.points && !this.scalar) {
 			gl.uniform1i(u.u_point, 1);
 			gl.uniform1f(u.u_width, 2 * stroke);
-			gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances);
+			gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances + 1);
 		}
 	}
 
@@ -266,12 +272,12 @@ export class LinePlot {
 		uploaded: Float32Array | null,
 		color: [number, number, number, number]
 	): void {
-		if (lines.length <= 2) return;
+		if (lines.length <= 4) return;
 		bindSegments(gl, vbo);
 		if (uploaded !== lines) gl.bufferData(gl.ARRAY_BUFFER, lines, gl.DYNAMIC_DRAW);
 		gl.uniform1i(u.u_stride, lines.length);
 		gl.uniform4f(u.u_flat, ...color);
-		gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, lines.length / 2 - 1);
+		gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, lines.length / 2 - 3);
 	}
 
 	private attach(gl: WebGL2RenderingContext, prog: Program): LineGpu {

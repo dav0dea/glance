@@ -123,11 +123,15 @@ export function layoutSeries(
 ): { buf: Float32Array; stride: number; m: number } {
 	const m = rows.length ? rows[0].length : 0;
 	const stride = m + 1;
-	const n = rows.length * stride * 2;
+	// A NaN pad before the first row and two after the last, so every segment has a neighbour
+	// to read on each side: a joint where the neighbour is a point, a butt end where it is a pad.
+	const n = (rows.length * stride + 2) * 2;
 	const buf = out && out.length === n ? out : new Float32Array(n);
+	buf[0] = NaN;
+	buf[1] = NaN;
 	for (let s = 0; s < rows.length; s++) {
 		const row = rows[s];
-		let o = s * stride * 2;
+		let o = (1 + s * stride) * 2;
 		for (let i = 0; i < m; i++) {
 			buf[o++] = xs ? xs[i] : i + base;
 			buf[o++] = row[i];
@@ -135,6 +139,8 @@ export function layoutSeries(
 		buf[o] = NaN;
 		buf[o + 1] = NaN;
 	}
+	buf[n - 2] = NaN;
+	buf[n - 1] = NaN;
 	return { buf, stride, m };
 }
 

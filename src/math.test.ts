@@ -66,15 +66,15 @@ describe('series layout', () => {
 		expect(m).toBe(2);
 		expect(stride).toBe(3);
 		expect([...buf].map((v) => (Number.isNaN(v) ? 'nan' : v))).toEqual([
-			0, 1, 1, 2, 'nan', 'nan', 0, 3, 1, 4, 'nan', 'nan'
+			'nan', 'nan', 0, 1, 1, 2, 'nan', 'nan', 0, 3, 1, 4, 'nan', 'nan', 'nan', 'nan'
 		]);
 	});
 	it('takes explicit xs and a base, and reuses a buffer that fits', () => {
 		const first = layoutSeries([[5]], null, 1, null);
-		expect([...first.buf].slice(0, 2)).toEqual([1, 5]);
+		expect([...first.buf].slice(2, 4)).toEqual([1, 5]);
 		const again = layoutSeries([[6]], [7], 0, first.buf);
 		expect(again.buf).toBe(first.buf);
-		expect([...again.buf].slice(0, 2)).toEqual([7, 6]);
+		expect([...again.buf].slice(2, 4)).toEqual([7, 6]);
 	});
 });
 

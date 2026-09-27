@@ -34,13 +34,13 @@ export function program(gl: WebGL2RenderingContext, vs: string, fs: string): Pro
 	return { prog, u, vao: null };
 }
 
-/** A segment buffer bound to the line program's two attribute slots, one vertex apart. */
+/** A segment buffer bound to the line program's four attribute slots, one point apart. */
 export function bindSegments(gl: WebGL2RenderingContext, vbo: WebGLBuffer): void {
 	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-	gl.enableVertexAttribArray(0);
-	gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 8, 0);
-	gl.vertexAttribDivisor(0, 1);
-	gl.enableVertexAttribArray(1);
-	gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 8, 8);
-	gl.vertexAttribDivisor(1, 1);
+	// Slot k reads point k of the window: the previous point, the two ends, the next point.
+	for (let k = 0; k < 4; k++) {
+		gl.enableVertexAttribArray(k);
+		gl.vertexAttribPointer(k, 2, gl.FLOAT, false, 8, 8 * k);
+		gl.vertexAttribDivisor(k, 1);
+	}
 }
