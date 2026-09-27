@@ -16,6 +16,7 @@ uniform int u_stride;
 uniform int u_point;
 uniform sampler2D u_palette;
 uniform vec4 u_flat;
+uniform float u_alpha;
 out vec4 v_color;
 
 bool ok(vec2 p) {
@@ -28,7 +29,8 @@ vec2 toPx(vec2 p) {
 	return vec2(u_rect.x + t.x * u_rect.z, u_rect.y + (1.0 - t.y) * u_rect.w);
 }
 void main() {
-	v_color = u_flat.a > 0.0 ? u_flat : texelFetch(u_palette, ivec2(gl_InstanceID / u_stride, 0), 0);
+	vec4 series = texelFetch(u_palette, ivec2(gl_InstanceID / u_stride, 0), 0);
+	v_color = u_flat.a > 0.0 ? u_flat : vec4(series.rgb, series.a * u_alpha);
 	bool bad = !ok(a_p0) || (u_point == 0 && !ok(a_p1));
 	if (bad) {
 		gl_Position = vec4(-2.0, -2.0, 0.0, 1.0);

@@ -17,6 +17,10 @@ export interface LineSettings {
 	yMin: number;
 	yMax: number;
 	points: boolean;
+	/** The stroke in CSS px; points are drawn twice as wide. */
+	width: number;
+	/** The series' opacity, 0..1; the grid keeps its own. */
+	alpha: number;
 }
 
 export interface LineData {
@@ -66,7 +70,16 @@ export class LinePlot {
 	rect: Rect = { x: 0, y: 0, w: 0, h: 0 };
 	order = 0;
 	background: [number, number, number, number] = [0, 0, 0, 1];
-	private settings: LineSettings = { logX: false, logY: false, yAuto: true, yMin: -1, yMax: 1, points: false };
+	private settings: LineSettings = {
+		logX: false,
+		logY: false,
+		yAuto: true,
+		yMin: -1,
+		yMax: 1,
+		points: false,
+		width: 1,
+		alpha: 1
+	};
 	private buf: Float32Array | null = null;
 	private stride = 0;
 	private m = 0;
@@ -222,7 +235,9 @@ export class LinePlot {
 		gl.uniform2f(u.u_x, this.xw[0], this.xw[1]);
 		gl.uniform2f(u.u_y, this.yw[0], this.yw[1]);
 		gl.uniform2i(u.u_log, this.scalar ? 0 : +this.settings.logX, this.scalar ? 0 : +this.settings.logY);
-		gl.uniform1f(u.u_width, Math.max(1, dpr) * (this.scalar ? 2 : 1));
+		const stroke = Math.max(1, dpr) * this.settings.width;
+		gl.uniform1f(u.u_width, stroke * (this.scalar ? 2 : 1));
+		gl.uniform1f(u.u_alpha, this.settings.alpha);
 		gl.uniform1i(u.u_stride, this.stride);
 		gl.uniform4f(u.u_flat, 0, 0, 0, 0);
 		gl.activeTexture(gl.TEXTURE0);
@@ -238,7 +253,7 @@ export class LinePlot {
 		gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances);
 		if (this.settings.points && !this.scalar) {
 			gl.uniform1i(u.u_point, 1);
-			gl.uniform1f(u.u_width, 2 * Math.max(1, dpr));
+			gl.uniform1f(u.u_width, 2 * stroke);
 			gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances);
 		}
 	}
