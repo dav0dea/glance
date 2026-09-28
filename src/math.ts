@@ -113,11 +113,19 @@ export function gridLines(a: number, b: number, log: boolean, target = 4): { maj
 	return { major, minor };
 }
 
+/** Sample positions: one row shared by every series, or one row per series. */
+export type Xs = ArrayLike<number> | ArrayLike<number>[];
+
+/** Whether `xs` gives each series positions of its own. */
+export function perRow(xs: Xs | null | undefined): xs is ArrayLike<number>[] {
+	return !!xs && xs.length > 0 && typeof (xs as ArrayLike<unknown>)[0] === 'object';
+}
+
 /** Interleave rows into (x, y) pairs with a NaN pad after each row, so one instanced segment
  * draw covers every series and never joins two rows. Reuses `out` when it fits. */
 export function layoutSeries(
 	rows: ArrayLike<number>[],
-	xs: ArrayLike<number> | null,
+	xs: Xs | null,
 	base: number,
 	out: Float32Array | null
 ): { buf: Float32Array; stride: number; m: number } {
@@ -129,11 +137,13 @@ export function layoutSeries(
 	const buf = out && out.length === n ? out : new Float32Array(n);
 	buf[0] = NaN;
 	buf[1] = NaN;
+	const rowXs = perRow(xs);
 	for (let s = 0; s < rows.length; s++) {
 		const row = rows[s];
+		const x = rowXs ? xs[s] : (xs as ArrayLike<number> | null);
 		let o = (1 + s * stride) * 2;
 		for (let i = 0; i < m; i++) {
-			buf[o++] = xs ? xs[i] : i + base;
+			buf[o++] = x ? x[i] : i + base;
 			buf[o++] = row[i];
 		}
 		buf[o] = NaN;

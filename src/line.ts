@@ -3,11 +3,13 @@ import { seriesRgba } from './color.js';
 import {
 	extent,
 	layoutSeries,
+	perRow,
 	rgba,
 	unmapped,
 	axisWindow,
 	gridLines,
-	type Rect
+	type Rect,
+	type Xs
 } from './math.js';
 
 export interface LineSettings {
@@ -17,17 +19,23 @@ export interface LineSettings {
 	yMin: number;
 	yMax: number;
 	points: boolean;
-	/** The stroke in CSS px; points are drawn twice as wide. */
+	/** The stroke in CSS px. */
 	width: number;
+	/** A point's side in CSS px; 0 draws it four strokes wide. */
+	pointWidth: number;
 	/** The series' opacity, 0..1; the grid keeps its own. */
 	alpha: number;
+	/** One window for both axes: the extent of the x and y values together, or the manual y range,
+	 * so a phase portrait keeps its shape; `logX` and `logY` do not apply. */
+	square: boolean;
 }
 
 export interface LineData {
 	/** One row per series, all of one length. A single row of length 1 is a scalar. */
 	rows: ArrayLike<number>[];
-	/** Sample positions shared by every row; the index from `base` when absent. */
-	xs?: ArrayLike<number> | null;
+	/** Sample positions: one row shared by every series, or one row per series (a trajectory);
+	 * the index from `base` when absent. A shared row must not decrease. */
+	xs?: Xs | null;
 	base?: number;
 }
 
@@ -82,13 +90,17 @@ export class LinePlot {
 		yMax: 1,
 		points: false,
 		width: 1,
-		alpha: 1
+		pointWidth: 0,
+		alpha: 1,
+		square: false
 	};
 	private buf: Float32Array | null = null;
 	private stride = 0;
 	private m = 0;
 	private series = 0;
 	private scalar = false;
+	/** Whether each series has an x row of its own, so the x window is read from every x. */
+	private rowXs = false;
 	private scalarLo = Infinity;
 	private scalarHi = -Infinity;
 	private xw: [number, number] = [0, 1];
@@ -153,6 +165,7 @@ export class LinePlot {
 			this.stride = laid.stride;
 			this.m = laid.m;
 		}
+		this.rowXs = !scalar && perRow(data.xs);
 		this.scalar = scalar;
 		this.series = scalar ? 1 : rows.length;
 		this.fitWindows();
@@ -162,7 +175,8 @@ export class LinePlot {
 
 	range(): Range | null {
 		if (!this.buf || this.m === 0) return null;
-		const { logX, logY } = this.settings;
+		const logX = this.settings.logX && !this.settings.square;
+		const logY = this.settings.logY && !this.settings.square;
 		if (this.scalar) {
 			return { xMin: this.xw[0], xMax: this.xw[1], yMin: 0, yMax: 1, scalar: true };
 		}
@@ -178,12 +192,19 @@ export class LinePlot {
 	private fitWindows(): void {
 		const buf = this.buf;
 		if (!buf || this.m === 0) return;
-		const { logX, logY, yAuto, yMin, yMax } = this.settings;
+		const { yAuto, yMin, yMax, square } = this.settings;
+		const logX = this.settings.logX && !square;
+		const logY = this.settings.logY && !square;
 		if (this.scalar) {
 			this.fitScalar(buf, yAuto, yMin, yMax);
+		} else if (square) {
+			const e = yAuto ? (extent(buf) ?? [-1, 1]) : [yMin, yMax];
+			this.xw = axisWindow(e[0], e[1], false, yAuto ? 0.05 : 0);
+			this.yw = this.xw;
 		} else {
 			// Point k sits at buf[(k + 1) * 2]: the pad comes first.
-			this.xw = axisWindow(buf[2], buf[this.m * 2], logX, 0);
+			const x = this.rowXs ? (extent(buf, 0, 2, logX) ?? [0, 1]) : [buf[2], buf[this.m * 2]];
+			this.xw = axisWindow(x[0], x[1], logX, 0);
 			if (yAuto) {
 				const e = extent(buf, 1, 2, logY) ?? [-1, 1];
 				this.yw = axisWindow(e[0], e[1], logY);
@@ -239,7 +260,8 @@ export class LinePlot {
 		bindSegments(gl, gpu.vbo);
 		gl.uniform2f(u.u_x, this.xw[0], this.xw[1]);
 		gl.uniform2f(u.u_y, this.yw[0], this.yw[1]);
-		gl.uniform2i(u.u_log, this.scalar ? 0 : +this.settings.logX, this.scalar ? 0 : +this.settings.logY);
+		const plain = this.scalar || this.settings.square;
+		gl.uniform2i(u.u_log, plain ? 0 : +this.settings.logX, plain ? 0 : +this.settings.logY);
 		const stroke = Math.max(1, dpr) * this.settings.width;
 		gl.uniform1f(u.u_width, stroke * (this.scalar ? 2 : 1));
 		gl.uniform1f(u.u_alpha, this.settings.alpha);
@@ -259,7 +281,9 @@ export class LinePlot {
 		gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances);
 		if (this.settings.points && !this.scalar) {
 			gl.uniform1i(u.u_point, 1);
-			gl.uniform1f(u.u_width, 2 * stroke);
+			// The shader takes the half-size of the point's square.
+			const half = this.settings.pointWidth > 0 ? (Math.max(1, dpr) * this.settings.pointWidth) / 2 : 2 * stroke;
+			gl.uniform1f(u.u_width, half);
 			gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instances + 1);
 		}
 	}

@@ -122,3 +122,123 @@ void main() {
 		o = vec4(clamp((texture(u_tex, v_uv).rg - u_lo) / u_span, 0.0, 1.0), 0.0, 1.0);
 	}
 }`;
+
+/** One instance per stroke segment (or dot), as `LINE_VS`, with the position in rect fractions and
+ * the width and colour carried per vertex; a dot is a quad of its diameter, rounded in the fragment. */
+export const PATH_VS = `#version 300 es
+precision highp float;
+layout(location = 0) in vec2 a_prev;
+layout(location = 1) in vec3 a_p0;
+layout(location = 2) in vec4 a_c0;
+layout(location = 3) in vec3 a_p1;
+layout(location = 4) in vec4 a_c1;
+layout(location = 5) in vec2 a_next;
+uniform vec4 u_rect;
+uniform vec2 u_canvas;
+uniform float u_scale;
+uniform int u_point;
+out vec4 v_color;
+out vec2 v_corner;
+
+bool ok(vec2 p) {
+	return !(any(isnan(p)) || any(isinf(p)));
+}
+vec2 toPx(vec2 p) {
+	return u_rect.xy + p * u_rect.zw;
+}
+vec2 joint(vec2 n, vec2 n2, float hw) {
+	vec2 sum = n + n2;
+	if (dot(sum, sum) < 1e-6) return n * hw;
+	vec2 m = normalize(sum);
+	return m * hw / max(dot(m, n), 0.25);
+}
+bool normalOf(vec2 p, vec2 q, out vec2 n) {
+	vec2 d = q - p;
+	float len = length(d);
+	if (len < 1e-4) return false;
+	n = vec2(-d.y, d.x) / len;
+	return true;
+}
+void main() {
+	int c = gl_VertexID;
+	v_corner = vec2((c & 1) == 1 ? 1.0 : -1.0, c >= 2 ? 1.0 : -1.0);
+	if (!ok(a_p0.xy) || (u_point == 0 && !ok(a_p1.xy))) {
+		gl_Position = vec4(-2.0, -2.0, 0.0, 1.0);
+		v_color = vec4(0.0);
+		return;
+	}
+	vec2 a = toPx(a_p0.xy);
+	vec2 pos;
+	if (u_point == 1) {
+		v_color = a_c0;
+		pos = a + v_corner * a_p0.z * u_scale * 0.5;
+	} else {
+		v_color = c < 2 ? a_c0 : a_c1;
+		vec2 b = toPx(a_p1.xy);
+		vec2 n;
+		if (!normalOf(a, b, n)) {
+			gl_Position = vec4(-2.0, -2.0, 0.0, 1.0);
+			return;
+		}
+		float hwA = a_p0.z * u_scale * 0.5;
+		float hwB = a_p1.z * u_scale * 0.5;
+		vec2 offA = n * hwA;
+		vec2 offB = n * hwB;
+		vec2 n2;
+		if (ok(a_prev) && normalOf(toPx(a_prev), a, n2)) offA = joint(n, n2, hwA);
+		if (ok(a_next) && normalOf(b, toPx(a_next), n2)) offB = joint(n, n2, hwB);
+		pos = c < 2 ? a + ((c & 1) == 1 ? offA : -offA) : b + ((c & 1) == 1 ? offB : -offB);
+	}
+	vec2 clip = pos / u_canvas * 2.0 - 1.0;
+	gl_Position = vec4(clip.x, -clip.y, 0.0, 1.0);
+}`;
+
+export const PATH_FS = `#version 300 es
+precision mediump float;
+in vec4 v_color;
+in vec2 v_corner;
+uniform highp int u_point;
+out vec4 o;
+void main() {
+	float a = v_color.a;
+	if (u_point == 1) {
+		float d = length(v_corner);
+		float aa = fwidth(d);
+		if (d > 1.0 + aa) discard;
+		a *= 1.0 - smoothstep(1.0 - aa, 1.0 + aa, d);
+	}
+	o = vec4(v_color.rgb, a);
+}`;
+
+/** The thin-plate spline over the centres, read at every fragment of the disc and mapped through
+ * the LUT; the disc's rim is anti-aliased and everything outside it is left to the background. */
+export const FIELD_FS = `#version 300 es
+precision highp float;
+in vec2 v_uv;
+uniform vec4 u_frame;
+uniform vec3 u_disc;
+uniform vec3 u_pts[128];
+uniform int u_n;
+uniform vec3 u_affine;
+uniform sampler2D u_lut;
+uniform float u_lo;
+uniform float u_span;
+uniform float u_bands;
+out vec4 o;
+void main() {
+	vec2 q = (v_uv - u_frame.xy) / u_frame.zw;
+	float d = length(q - u_disc.xy);
+	float aa = fwidth(d);
+	if (d > u_disc.z + aa) discard;
+	float v = u_affine.x + u_affine.y * q.x + u_affine.z * q.y;
+	for (int i = 0; i < 128; i++) {
+		if (i >= u_n) break;
+		vec2 e = q - u_pts[i].xy;
+		float r2 = dot(e, e);
+		if (r2 > 1e-12) v += u_pts[i].z * 0.5 * r2 * log(r2);
+	}
+	float t = clamp((v - u_lo) / u_span, 0.0, 1.0);
+	if (u_bands > 0.0) t = floor(t * u_bands + 0.5) / u_bands;
+	float rim = 1.0 - smoothstep(u_disc.z - aa, u_disc.z + aa, d);
+	o = vec4(texture(u_lut, vec2(t, 0.5)).rgb, rim);
+}`;

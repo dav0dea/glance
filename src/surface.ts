@@ -1,16 +1,20 @@
+import { FieldPlot } from './field.js';
 import { program, type Program } from './gl.js';
 import { ImagePlot } from './image.js';
 import { LinePlot } from './line.js';
 import { deviceRect, visible, type View } from './math.js';
-import { IMAGE_FS, IMAGE_VS, LINE_FS, LINE_VS } from './shaders.js';
+import { PathPlot } from './path.js';
+import { FIELD_FS, IMAGE_FS, IMAGE_VS, LINE_FS, LINE_VS, PATH_FS, PATH_VS } from './shaders.js';
 
-export type Plot = LinePlot | ImagePlot;
+export type Plot = LinePlot | ImagePlot | PathPlot | FieldPlot;
 
 export interface Surface {
 	/** The pane and the camera; the canvas backing store follows `width × dpr`. */
 	setView(v: View): void;
 	addLine(): LinePlot;
 	addImage(): ImagePlot;
+	addPath(): PathPlot;
+	addField(): FieldPlot;
 	dispose(): void;
 }
 
@@ -58,12 +62,21 @@ export function createSurface(canvas: HTMLCanvasElement): Surface {
 			const d = deviceRect(p.rect, view);
 			if (!visible(d, view)) continue;
 			gl.scissor(d.x, h - d.y - d.h, d.w, d.h);
-			gl.clearColor(...p.background);
-			gl.clear(gl.COLOR_BUFFER_BIT);
-			const prog = p instanceof LinePlot ? programs.line : programs.image;
-			gl.bindVertexArray(prog.vao);
-			if (p instanceof LinePlot) p.draw(gl, prog, d, size, view.dpr);
-			else p.draw(gl, prog, d, size);
+			// A transparent background leaves what an earlier plot drew under the rect.
+			if (p.background[3] > 0) {
+				gl.clearColor(...p.background);
+				gl.clear(gl.COLOR_BUFFER_BIT);
+			}
+			if (p instanceof LinePlot) {
+				gl.bindVertexArray(programs.line.vao);
+				p.draw(gl, programs.line, d, size, view.dpr);
+			} else if (p instanceof PathPlot) {
+				gl.bindVertexArray(programs.path.vao);
+				p.draw(gl, programs.path, d, size, view.dpr);
+			} else {
+				gl.bindVertexArray(null);
+				p.draw(gl, p instanceof ImagePlot ? programs.image : programs.field, d, size);
+			}
 		}
 	}
 
@@ -94,6 +107,8 @@ export function createSurface(canvas: HTMLCanvasElement): Surface {
 		},
 		addLine: () => add(new LinePlot(invalidate, detach)),
 		addImage: () => add(new ImagePlot(invalidate, detach)),
+		addPath: () => add(new PathPlot(invalidate, detach)),
+		addField: () => add(new FieldPlot(invalidate, detach)),
 		dispose() {
 			disposed = true;
 			for (const p of plots) p.release();
@@ -103,9 +118,10 @@ export function createSurface(canvas: HTMLCanvasElement): Surface {
 	};
 }
 
-/** The line program's segment attributes live in a VAO of its own, so an image drawn after a
+/** A program with instanced attributes keeps them in a VAO of its own, so a quad drawn after a
  * removed line never meets an attribute enabled on a deleted buffer. */
-function build(gl: WebGL2RenderingContext): { line: Program; image: Program } {
+function build(gl: WebGL2RenderingContext): { line: Program; image: Program; path: Program; field: Program } {
 	const line = { ...program(gl, LINE_VS, LINE_FS), vao: gl.createVertexArray() };
-	return { line, image: program(gl, IMAGE_VS, IMAGE_FS) };
+	const path = { ...program(gl, PATH_VS, PATH_FS), vao: gl.createVertexArray() };
+	return { line, path, image: program(gl, IMAGE_VS, IMAGE_FS), field: program(gl, IMAGE_VS, FIELD_FS) };
 }

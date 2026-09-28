@@ -44,3 +44,45 @@ export function bindSegments(gl: WebGL2RenderingContext, vbo: WebGLBuffer): void
 		gl.vertexAttribDivisor(k, 1);
 	}
 }
+
+/** A path buffer bound to the path program's six attribute slots: the previous point, each end
+ * with its width and colour, and the next point, one vertex apart. */
+export function bindPath(gl: WebGL2RenderingContext, vbo: WebGLBuffer): void {
+	gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+	const stride = 28;
+	const layout: [number, number, number][] = [
+		[0, 2, 0],
+		[1, 3, 28],
+		[2, 4, 40],
+		[3, 3, 56],
+		[4, 4, 68],
+		[5, 2, 84]
+	];
+	for (const [slot, size, offset] of layout) {
+		gl.enableVertexAttribArray(slot);
+		gl.vertexAttribPointer(slot, size, gl.FLOAT, false, stride, offset);
+		gl.vertexAttribDivisor(slot, 1);
+	}
+}
+
+/** A 256-wide RGB texture for a LUT, sampled linearly and clamped. */
+export function lutTexture(gl: WebGL2RenderingContext): WebGLTexture {
+	const tex = gl.createTexture()!;
+	gl.bindTexture(gl.TEXTURE_2D, tex);
+	clampTexture(gl, gl.LINEAR, gl.LINEAR);
+	return tex;
+}
+
+export function clampTexture(gl: WebGL2RenderingContext, min: number, mag: number): void {
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, min);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, mag);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+}
+
+/** The identity LUT: 256 grey levels. */
+export function grayLut(): Uint8Array {
+	const lut = new Uint8Array(768);
+	for (let i = 0; i < 256; i++) lut.fill(i, i * 3, i * 3 + 3);
+	return lut;
+}

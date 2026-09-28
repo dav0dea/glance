@@ -1,4 +1,4 @@
-import type { Program } from './gl.js';
+import { clampTexture, grayLut, lutTexture, type Program } from './gl.js';
 import { fitImage, rgba, type Rect } from './math.js';
 
 export interface ImageSettings {
@@ -106,9 +106,7 @@ export class ImagePlot {
 
 	private attach(gl: WebGL2RenderingContext, prog: Program): ImageGpu {
 		if (this.gpu && this.gpu.gl === gl && this.gpu.prog === prog) return this.gpu;
-		const lutTex = gl.createTexture()!;
-		gl.bindTexture(gl.TEXTURE_2D, lutTex);
-		clampTexture(gl, gl.LINEAR, gl.LINEAR);
+		const lutTex = lutTexture(gl);
 		const tex = gl.createTexture()!;
 		gl.bindTexture(gl.TEXTURE_2D, tex);
 		clampTexture(gl, gl.LINEAR, gl.NEAREST);
@@ -128,12 +126,6 @@ export class ImagePlot {
 	}
 }
 
-function clampTexture(gl: WebGL2RenderingContext, min: number, mag: number): void {
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, min);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, mag);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-}
 
 /** Smooth when shrinking, blocky when enlarging: a texel stays a texel. The storage is
  *  allocated once per shape; a frame of the same shape is written into it. */
@@ -156,8 +148,3 @@ function upload(gl: WebGL2RenderingContext, gpu: ImageGpu, d: ImageData): void {
 	gpu.shape = [d.width, d.height, internal];
 }
 
-function grayLut(): Uint8Array {
-	const lut = new Uint8Array(768);
-	for (let i = 0; i < 256; i++) lut.fill(i, i * 3, i * 3 + 3);
-	return lut;
-}

@@ -69,6 +69,11 @@ describe('series layout', () => {
 			'nan', 'nan', 0, 1, 1, 2, 'nan', 'nan', 0, 3, 1, 4, 'nan', 'nan', 'nan', 'nan'
 		]);
 	});
+	it('takes a row of xs per series', () => {
+		const { buf } = layoutSeries([[1, 2], [3, 4]], [[5, 6], [7, 8]], 0, null);
+		expect([...buf].slice(2, 6)).toEqual([5, 1, 6, 2]);
+		expect([...buf].slice(8, 12)).toEqual([7, 3, 8, 4]);
+	});
 	it('takes explicit xs and a base, and reuses a buffer that fits', () => {
 		const first = layoutSeries([[5]], null, 1, null);
 		expect([...first.buf].slice(2, 4)).toEqual([1, 5]);
