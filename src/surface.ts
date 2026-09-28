@@ -18,8 +18,9 @@ export interface Surface {
 	dispose(): void;
 }
 
-/** One surface per host canvas. Throws when the canvas cannot give a WebGL2 context. */
-export function createSurface(canvas: HTMLCanvasElement): Surface {
+/** One surface per host canvas, on the main thread or in a worker that was handed an
+ * OffscreenCanvas. Throws when the canvas cannot give a WebGL2 context. */
+export function createSurface(canvas: HTMLCanvasElement | OffscreenCanvas): Surface {
 	const ctx = canvas.getContext('webgl2', { antialias: true, depth: false, stencil: false });
 	if (!ctx) throw new Error('plotluck: WebGL2 is not available');
 	const gl: WebGL2RenderingContext = ctx;
@@ -30,10 +31,15 @@ export function createSurface(canvas: HTMLCanvasElement): Surface {
 	let lost = false;
 	let disposed = false;
 
+	// A worker without an animation frame of its own draws on a timer at a display's pace.
+	const schedule =
+		typeof requestAnimationFrame === 'function'
+			? requestAnimationFrame
+			: (fn: () => void): number => setTimeout(fn, 16) as unknown as number;
 	const invalidate = (): void => {
 		if (dirty || lost || disposed) return;
 		dirty = true;
-		requestAnimationFrame(draw);
+		schedule(draw);
 	};
 	const detach = (p: Plot): void => {
 		plots.delete(p);

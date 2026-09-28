@@ -10,7 +10,7 @@ and one animation frame draws every visible plot.
 ```ts
 import { createSurface } from 'plotluck';
 
-const surface = createSurface(canvas); // throws without WebGL2
+const surface = createSurface(canvas); // throws without WebGL2; an OffscreenCanvas in a worker works too
 surface.setView({ x: 0, y: 0, zoom: 1, width, height, dpr: devicePixelRatio });
 
 const line = surface.addLine();
