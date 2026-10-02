@@ -1,4 +1,4 @@
-export { createSurface, type Surface, type Plot } from './surface.js';
+export { createRenderer, type Renderer, type Surface, type Plot } from './surface.js';
 export { LinePlot, type LineSettings, type LineData, type Range } from './line.js';
 export { ImagePlot, type ImageSettings, type ImageData } from './image.js';
 export { PathPlot, PathBuilder, paths, type PathData, type Rgba } from './path.js';

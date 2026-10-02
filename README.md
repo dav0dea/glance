@@ -8,9 +8,10 @@ task. plotluck pays once: every plot is a rectangle and a GPU buffer, a new fram
 and one animation frame draws every visible plot.
 
 ```ts
-import { createSurface } from 'plotluck';
+import { createRenderer } from 'plotluck';
 
-const surface = createSurface(canvas); // throws without WebGL2; an OffscreenCanvas in a worker works too
+const renderer = createRenderer(); // throws without WebGL2; a worker can own it
+const surface = renderer.surface(canvas); // any canvas, or an OffscreenCanvas handed to the worker
 surface.setView({ x: 0, y: 0, zoom: 1, width, height, dpr: devicePixelRatio });
 
 const line = surface.addLine();
@@ -29,7 +30,14 @@ npm install plotluck
 
 The package builds `dist/` (ES modules and declarations) on install.
 
-## The surface
+## The renderer and its surfaces
+
+A renderer is one WebGL2 context, and every surface it makes is drawn by it: a browser allows a
+thread sixteen contexts and a worker four, so a page of panels cannot pay one per canvas. A frame
+draws the surfaces that changed side by side on one atlas canvas, and one bitmap handover brings
+each surface its picture on its own canvas, which holds a 2D context for that. Five surfaces of
+mixed size cost about half a millisecond a frame on a laptop GPU, and a surface that did not
+change costs nothing.
 
 `setView` takes the pane in CSS pixels, a camera in world units and the device pixel ratio. Every
 plot's rect is in world units, so a host with a pan-and-zoom canvas moves the camera and the plots
